@@ -57,4 +57,12 @@ public class VendorJNI {
    * @see "VendorJNI.cpp"
    */
   public static native int initialize();
+
+  /**
+   * Initializes the simulation components of the driver.
+   * 
+   * @return status code (0 for success, non-zero for failure)
+   * @see "VendorJNI.cpp"
+   */
+  public static native int init_sim();
 }

@@ -1,5 +1,6 @@
 #include "jni.h"
 #include "com_vendor_jni_VendorJNI.h"
+#include "driverheader.h"
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
     // Check to ensure the JNI version is valid
@@ -19,4 +20,14 @@ JNIEXPORT void JNICALL JNI_OnUnload(JavaVM* vm, void* reserved) {}
 JNIEXPORT jint JNICALL Java_com_vendor_jni_VendorJNI_initialize
   (JNIEnv *, jclass) {
   return 0;
+}
+
+JNIEXPORT jint JNICALL Java_com_vendor_jni_VendorJNI_init_1sim
+  (JNIEnv *, jclass) {
+#ifdef DESKTOP
+  init_sim();
+  return 0;
+#else
+  return -1;
+#endif
 }

@@ -3,7 +3,7 @@
     "name": "ExampleVendorDep",
     "version": "${version}",
     "frcYear": "2025",
-    "uuid": "Generate A Unique GUID https://guidgenerator.com/online-guid-generator.aspx and insert it here", This line is to purposely make this fail to parse
+    "uuid": "a83ed69a-b675-4078-aaf4-9310b46525d2",
     "mavenUrls": [
         "ThisNeedsToBeTheRootMavenUrl"
     ],
@@ -39,7 +39,7 @@
             "version": "${version}",
             "libName": "Vendor",
             "headerClassifier": "headers",
-            "sharedLibrary": false,
+            "sharedLibrary": true,
             "skipInvalidPlatforms": true,
             "binaryPlatforms": [
                 "windowsx86-64",
@@ -56,7 +56,7 @@
             "version": "${version}",
             "libName": "VendorDriver",
             "headerClassifier": "headers",
-            "sharedLibrary": false,
+            "sharedLibrary": true,
             "skipInvalidPlatforms": true,
             "binaryPlatforms": [
                 "windowsx86-64",

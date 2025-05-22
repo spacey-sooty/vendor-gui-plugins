@@ -5,13 +5,13 @@ plugins {
   id 'java'
   id 'google-test'
   id 'edu.wpi.first.wpilib.repositories.WPILibRepositoriesPlugin' version '2025.0'
-  id 'edu.wpi.first.NativeUtils' version '2025.9.0'
+  id 'edu.wpi.first.NativeUtils' version '2025.11.1'
   id 'edu.wpi.first.GradleJni' version '1.1.0'
   id 'edu.wpi.first.GradleVsCode' version '2.1.0'
 }
 
 // WPILib Version
-ext.wpilibVersion = "2025.+"
+ext.wpilibVersion = '2025.+'
 
 repositories {
   mavenCentral()
@@ -26,7 +26,7 @@ java {
   sourceCompatibility = JavaVersion.VERSION_17
   targetCompatibility = JavaVersion.VERSION_17
 }
-var javaVersion = "17"
+var javaVersion = '17'
 
 // Apply C++ configuration
 apply from: 'config.gradle'
@@ -41,10 +41,10 @@ dependencies {
     implementation "edu.wpi.first.wpimath:wpimath-java:$wpilibVersion"
     implementation "edu.wpi.first.wpiunits:wpiunits-java:$wpilibVersion"
     implementation "edu.wpi.first.hal:hal-java:$wpilibVersion"
-    implementation "org.ejml:ejml-simple:0.43.1"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:2.15.2"
-    implementation "com.fasterxml.jackson.core:jackson-core:2.15.2"
-    implementation "com.fasterxml.jackson.core:jackson-databind:2.15.2"
+    implementation 'org.ejml:ejml-simple:0.43.1'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.15.2'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
     implementation 'edu.wpi.first.thirdparty.frc2025.opencv:opencv-java:4.10.0-2'
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
@@ -56,13 +56,13 @@ test {
     useJUnitPlatform()
     systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
     testLogging {
-        events "failed"
-        exceptionFormat "full"
+        events 'failed'
+        exceptionFormat 'full'
     }
 }
 
 if (project.hasProperty('onlylinuxathena') || project.hasProperty('onlylinuxarm32') || project.hasProperty('onlylinuxarm64') || project.hasProperty('onlywindowsarm64') || project.hasProperty('onlylinuxsystemcore')) {
-    test.enabled = false
+  test.enabled = false
 }
 
 tasks.withType(JavaCompile) {
@@ -73,7 +73,8 @@ tasks.withType(JavaCompile) {
 // Setup Javadocs to link back to WPILib docs
 javadoc {
     options {
-        links "https://docs.oracle.com/en/java/javase/$javaVersion/docs/api/", 'https://github.wpilib.org/allwpilib/docs/release/java/'
+        links "https://docs.oracle.com/en/java/javase/$javaVersion/docs/api/",
+        'https://github.wpilib.org/allwpilib/docs/release/java/'
     }
 }
 
@@ -87,16 +88,42 @@ nativeUtils {
   privateExportsConfigs {
     // Only export explicit symbols from driver library
     VendorDriver {
-      exportsFile = project.file("src/main/driver/symbols.txt")
+      exportsFile = project.file('src/main/driver/symbols.txt')
+    }
+  }
+  nativeDependencyContainer {
+    imguiSuite(getNativeDependencyTypeClass('WPIStaticMavenDependency')) {
+      groupId = 'edu.wpi.first.thirdparty.imguiSuite'
+      artifactId = 'imguiSuite-cpp'
+      headerClassifier = 'headers'
+      sourceClassifier = 'sources'
+      ext = 'zip'
+      version = "$wpilibVersion"
+      targetPlatforms.addAll(nativeUtils.wpi.platforms.desktopPlatforms)
+    }
+    wpigui(getNativeDependencyTypeClass('WPIStaticMavenDependency')) {
+      groupId = 'edu.wpi.first.wpigui'
+      artifactId = 'wpigui-cpp'
+      headerClassifier = 'headers'
+      sourceClassifier = 'sources'
+      ext = 'zip'
+      version = "$wpilibVersion"
+      targetPlatforms.addAll(nativeUtils.wpi.platforms.desktopPlatforms)
     }
   }
 }
 
 ext.getCurrentArch = {
-    return NativePlatforms.desktop
+  return NativePlatforms.desktop
 }
 
 def systemArch = getCurrentArch()
+
+def isDesktopPlatform = { platformName ->
+  logger.lifecycle("$platformName")
+  logger.lifecycle("${nativeUtils.wpi.platforms.desktopPlatforms}")
+  return nativeUtils.wpi.platforms.desktopPlatforms.contains(platformName)
+}
 
 model {
   components {
@@ -137,42 +164,72 @@ model {
         }
       }
 
-      nativeUtils.useRequiredLibrary(it, "driver_shared")
+      binaries.each { binary ->
+        if (isDesktopPlatform(binary.targetPlatform.name)) {
+          nativeUtils.useRequiredLibrary(binary, 'imguiSuite')
+          nativeUtils.useRequiredLibrary(binary, 'wpigui')
+          binary.cppCompiler.define 'DESKTOP'
+        }
+      }
+      nativeUtils.useRequiredLibrary(it, 'driver_shared')
     }
   }
+
+  binaries {
+    all { binary ->
+      if (binary instanceof NativeBinarySpec) {
+        def targetPlatform = binary.targetPlatform.name
+        if (nativeUtils.wpi.platforms.desktopPlatforms.contains(targetPlatform)) {
+          if (binary.component.name == 'Vendor' || binary.component.name == 'VendorDriver' ||
+              binary.component.name == 'VendorTest') {
+                nativeUtils.useRequiredLibrary(binary, 'imguiSuite')
+                nativeUtils.useRequiredLibrary(binary, 'wpigui')
+            binary.cppCompiler.define 'DESKTOP'
+              }
+        }
+      }
+    }
+  }
+
   testSuites {
     VendorTest {
-        sources.cpp {
-            source {
-                srcDir 'src/test/native/cpp'
-                include '**/*.cpp'
-            }
+      sources.cpp {
+        source {
+          srcDir 'src/test/native/cpp'
+          include '**/*.cpp'
         }
+      }
+      binaries.each {
+        def arch = it.targetPlatform.name
 
-        binaries.all {
-          lib library: 'VendorDriver', linkage: 'shared'
-
-          def arch = it.targetPlatform.name
-          if (systemArch == arch && it.buildType.name == 'debug') {
-            def filePath = it.tasks.install.installDirectory.get().toString() + File.separatorChar + 'lib'
-            test.dependsOn it.tasks.install
-            test.systemProperty 'java.library.path', filePath
-            test.environment 'LD_LIBRARY_PATH', filePath
-            test.workingDir filePath
-          }
+        if (isDesktopPlatform(arch)) {
+          nativeUtils.useRequiredLibrary(it, 'imguiSuite')
+          nativeUtils.useRequiredLibrary(it, 'wpigui')
+          it.cppCompiler.define 'DESKTOP'
         }
-
-        nativeUtils.useRequiredLibrary(it, "wpilib_executable_shared", "googletest_static")
+      }
+      binaries.all {
+        def arch = it.targetPlatform.name
+        if (systemArch == arch && it.buildType.name == 'debug') {
+          def filePath = it.tasks.install.installDirectory.get().toString() + File.separatorChar + 'lib'
+          test.dependsOn it.tasks.install
+          test.systemProperty 'java.library.path', filePath
+          test.environment 'LD_LIBRARY_PATH', filePath
+          test.workingDir filePath
+        }
+        lib library: 'VendorDriver', linkage: 'shared'
+      }
+      nativeUtils.useRequiredLibrary(it, 'wpilib_executable_shared', 'googletest_static')
     }
 
     VendorDriverTest {
-        sources.cpp {
-            source {
-                srcDir 'src/test/driver/cpp'
-                include '**/*.cpp'
-            }
+      sources.cpp {
+        source {
+          srcDir 'src/test/driver/cpp'
+          include '**/*.cpp'
         }
-        nativeUtils.useRequiredLibrary(it, "wpilib_executable_shared", "googletest_static")
+      }
+      nativeUtils.useRequiredLibrary(it, 'wpilib_executable_shared', 'googletest_static')
     }
   }
 }
